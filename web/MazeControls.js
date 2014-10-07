@@ -40,6 +40,7 @@ function loadAudio(url) {
 }
 
 THREE.MazeControls.prototype._keyDown = function (event) {
+    console.log('MazeControls', event);
     if (event.keyCode in this.handlers) {
         this.handlers[event.keyCode]();
     }
@@ -72,27 +73,54 @@ THREE.MazeControls.prototype._keyDown = function (event) {
     }
 }
 
+/*
+function rotateTo(o, x, y, z, time, delay) {
+    var curPos = { x: o.rotation.x, y:o.rotation.y, z:o.rotation.z };
+    var newPos = { x: x, y:y, z:z };
+
+    var tween = new TWEEN.Tween(curPos)
+        .to(newPos, time * 1000)
+        .onUpdate( function() {
+            o.rotation.x = this.x;
+            o.rotation.y = this.y;
+            o.rotation.z = this.z;
+        })
+        .easing(TWEEN.Easing.Sinusoidal.InOut)
+        .delay(delay * 1000)
+        .start();
+}
+*/
+
 THREE.MazeControls.prototype.rotate = function(direction, delay) {
     delay = delay === undefined ? 0 : delay;
     this.compass += direction;
-
     var angle = (Math.PI / 2) * this.compass;
     var target = { x:0, y:angle, z:0};
-    new TWEEN.Tween(this.camera.rotation).to(target, 500)
-         .easing( TWEEN.Easing.Quadratic.EaseOut).delay(delay).start();
+    var camera = this.camera;
+
+    var tween = new TWEEN.Tween(camera.rotation)
+        .to(target, 500)
+        .onUpdate( function() {
+            camera.rotation.x = this.x;
+            camera.rotation.y = this.y;
+            camera.rotation.z = this.z;
+        })
+        .easing(TWEEN.Easing.Sinusoidal.InOut)
+        .delay(delay)
+        .start();
 }
 
 THREE.MazeControls.prototype.jump = function() {
     if (!this.jumping) {
         var that = this;
         this.jumping = true;
-        var starget = {  y: 4, };
+        var starget = {  y: 20, };
         var ttarget = {  y: this.cameraHeight, };
         //var rtarget = { x: -Math.PI / 2};
         var upTween = new TWEEN.Tween(this.camera.position).to(starget, 1000)
-             .easing( TWEEN.Easing.Quadratic.EaseOut).delay(0);
+             .easing( TWEEN.Easing.Quadratic.Out).delay(0);
         var downTween = new TWEEN.Tween(this.camera.position).to(ttarget, 2000)
-             .easing( TWEEN.Easing.Bounce.EaseOut).delay(0).
+             .easing( TWEEN.Easing.Bounce.Out).delay(0).
                 onComplete(function(){ that.jumping = false;});
         upTween.chain(downTween);
         upTween.start();
@@ -133,13 +161,13 @@ THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos) {
     console.log("moveok", this.compass, this.camera.position.x, this.camera.position.z);
         //console.log('rc move', this.xpos, this.zpos);
         new TWEEN.Tween(this.camera.position).to(target, 1000)
-             .easing( TWEEN.Easing.Quadratic.EaseOut).start();
+             .easing( TWEEN.Easing.Quadratic.Out).start();
         this.xpos = xpos;
         this.ypos = ypos;
         this.zpos = zpos;
     } else {
         var contents = this.floorplan.get(fpPos[0], fpPos[1]);
-        if (contents && 'play' in contents) {
+        if (contents && (typeof contents == 'object' && 'play' in contents)) {
             contents.play();
         } else {
             //this.thunk.play();

@@ -61,9 +61,35 @@ function addStars(scene) {
 }
 
 function addLights(scene) {
-    var plight = new THREE.PointLight( 0xff00ff, 1, 0 );
-    plight.position.set( 200, 200, 200 ).normalize();
+
+/*
+*/
+    var ambientLight = new THREE.AmbientLight( 0x888888 );
+    scene.add( ambientLight );
+
+    var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
+    plight.position.set( 0, 200, 0 ).normalize();
     scene.add( plight );
+
+/*
+    var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
+    plight.position.set( 100, 200, 100 ).normalize();
+    scene.add( plight );
+
+    var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
+    plight.position.set( 100, 200, 0 ).normalize();
+    scene.add( plight );
+
+    var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
+    plight.position.set( 0, 200, 100 ).normalize();
+    scene.add( plight );
+*/
+
+
+    /*
+    var directionalLight = new THREE.DirectionalLight( 0xffffff, 2);
+    directionalLight.position.set( 1, 1, 0.5 ).normalize();
+    scene.add( directionalLight );
 
     var plight2 = new THREE.PointLight( 0xffffff, 1, 0 );
     plight2.position.set( -200, 200, 200 ).normalize();
@@ -84,6 +110,7 @@ function addLights(scene) {
     var dlight2 = new THREE.DirectionalLight( 0xffffff, 2 );
     dlight2.position.set( 1, 1, 1 ).normalize();
     scene.add( dlight2 );
+    */
 }
 
 function buildAxis( src, dst, colorHex, dashed ) {
@@ -99,6 +126,45 @@ function buildAxis( src, dst, colorHex, dashed ) {
     geom.vertices.push( dst.clone() );
     var axis = new THREE.Line( geom, mat );
     return axis;
+}
+
+function normalizeAngle(angle) {
+    while (angle > 2 * Math.PI) {
+        angle -= Math.PI * 2;
+    }
+    while (angle < 0) {
+        angle += Math.PI * 2;
+    }
+    return angle;
+}
+
+
+function goCircle(group, width) {
+    var circumference = width * group.children.length;
+    var radius = circumference / (2 * Math.PI) * 1.4;
+    var theta = 0;
+    var delta = 2 * Math.PI / group.children.length;
+
+    console.log('GoCircle', group.children.length, circumference, radius);
+    for (var i = 0; i < group.children.length; i++) {
+        var song = group.children[i];
+        var x = radius * Math.sin(theta);
+        var y = 0;
+        var z = radius * Math.cos(theta);
+
+        song.rotation.x = 0;
+        song.rotation.y = theta;
+        song.rotation.z = 0;
+
+        song.position.x = x;
+        song.position.y = y;
+        song.position.z = z;
+
+        theta += delta;
+        theta = normalizeAngle(theta);
+        console.log('gc', x,y,z,theta * Math.PI * 2);
+
+    }
 }
 
 function addAxes(scene) {
@@ -147,5 +213,14 @@ function rotateTo(o, x, y, z, time, delay) {
 
 function dither() {
     return 0;
+}
+
+function randomOnSphere(radius) {
+    var theta = Math.random() * 2 *  Math.PI;
+    var phi = Math.random() * 2 *  Math.PI;
+    var x = radius * Math.sin(theta) * Math.cos(phi);
+    var y = radius * Math.sin(theta) * Math.sin(phi);
+    var z = radius * Math.cos(theta);
+    return new THREE.Vector3(x,y,z);
 }
 

@@ -50,12 +50,14 @@ var curRoom = null;
 var curTrack = null;
 var cameraControls = null;
 
-var topBorder = 10;
+var topBorder = 20;
 var clock = null;
 var audio = null;
 var monkey = false;
 var audio = $("<audio>");
 var removeMe = [];
+
+var trackBallCamera = false;
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -69,8 +71,9 @@ function clickHandler( e ) {
 
     mouseVector.x = 2 * (e.offsetX / renderer.domElement.clientWidth) - 1;
     mouseVector.y = 1 - 2 * ( e.offsetY / renderer.domElement.clientHeight );
-    console.log('ec', e.clientX, e.clientY);
-    console.log('mv', mouseVector.x, mouseVector.y);
+
+    //console.log('ec', e.clientX, e.clientY);
+    //console.log('mv', mouseVector.x, mouseVector.y);
 
     var raycaster = projector.pickingRay( mouseVector, camera );
     var intersects = raycaster.intersectObjects( curRoom.viz.children);
@@ -78,7 +81,7 @@ function clickHandler( e ) {
     if (intersects.length > 0) {
         var obj = intersects[0].object;
         while (obj) {
-            console.log('clicked', obj);
+            // console.log('clicked', obj);
             if ('clicked' in obj) {
                 obj.clicked();
                 break;
@@ -90,7 +93,11 @@ function clickHandler( e ) {
 }
 
 function addCameraControl(camera, scene, maze) {
-    controls = new THREE.TrackballControls( camera, renderer.domElement);
+    if (trackBallCamera) {
+        controls = new THREE.TrackballControls( camera, renderer.domElement);
+    } else {
+        controls = new THREE.MazeControls( camera, scene);
+    }
 }
 
 
@@ -135,12 +142,15 @@ function showRoomControls(room) {
 }
 
 
+var xspot = 0;
 function showCurrentRoom() {
     console.log('scr', curRoom.viz);
-    deleteCurrentRoom(curRoom);
-    var viz = createVisualization(curRoom);
+    //deleteCurrentRoom(curRoom);
+    var viz = createVisualization(curRoom, xspot, 0,0, 0);
+    var dim = curRoom.floorPlan.getDimensions();
+    xspot += dim[0];
     scene.add(viz);
-    //cameraControls.setFloorplan(curRoom.floorPlan);
+    controls.setFloorplan(curRoom.floorPlan);
     showRoomControls(curRoom);
 
 
@@ -154,10 +164,33 @@ function showCurrentRoom() {
     }
 }
 
+function connectRooms(oldRoom, newRoom) {
+    var oname = oldRoom.name;
+    var nname = newRoom.name;
+
+    var oport = getConnection(oldRoom, nname);
+    var nport = getConnection(newRoom, oname);
+    console.log('connect rooms', oldRoom, oport, newRoom, nport);
+}
+
+function getConnection(room, oname) {
+    for (var i = 0; i < room.sims.length; i++) {
+        if (room.sims[i] == oname) {
+            return i;
+        }
+    }
+    return null;
+}
+
 function goToRoom(room) {
-    deleteCurrentRoom();
+    //deleteCurrentRoom();
     roomManager.fetchRoom(room, function(room) {
+        var oldRoom = curRoom;
         curRoom = room;
+
+        if (oldRoom) {
+            connectRooms(oldRoom, room);
+        }
         showCurrentRoom();
     });
 }
@@ -217,7 +250,7 @@ function init3D() {
         requestAnimationFrame(render);
         renderer.render(scene, camera);
         if (curRoom && curRoom.viz) {
-            curRoom.viz.rotation.y += .01;
+            //curRoom.viz.rotation.y += .001;
         }
 
         while (removeMe.length > 0) {
@@ -257,7 +290,7 @@ $(document).ready(
 <script src="lib/underscore-min.js"></script>
 <script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 <script src="lib/three.min.js"></script>
-<script src="lib/tween.min.js"></script>
+<script src="lib/tween.js"></script>
 <script src="lib/TrackballControls.js"></script>
 <script src="lib/threex.dynamictexture.js"></script>
 <script src="lib/stats.min.js"></script>

@@ -43,7 +43,9 @@ var floorPlan = function(type, r, c, npoints) {
             console.log('unknown maze type');
         }
         finalizeMaze();
+        console.log('dims', rows, cols);
     }
+
 
     function finalizeMaze() {
         // set the walkways to visitable
@@ -68,6 +70,10 @@ var floorPlan = function(type, r, c, npoints) {
         worldOffset.x = x;
         worldOffset.y = y;
         worldOffset.z = z;
+    }
+
+    function getWorldOffset() {
+        return worldOffset;
     }
 
 
@@ -366,15 +372,15 @@ var floorPlan = function(type, r, c, npoints) {
         }
 
         return {
-            x: r - rows / 2 + .5 + worldOffset.x, 
-            y:.5 + worldOffset.y, 
-            z: c - cols / 2 + .5 + worldOffset.z
+            x: r +  worldOffset.x, 
+            y: 0 +  worldOffset.y, 
+            z: c +  worldOffset.z
         };
     }
 
     function worldPosToMaze(pos) {
-        var r = (pos.x - worldOffset.x) + rows / 2 - .5;
-        var c = (pos.z - worldOffset.z) + cols / 2 - .5;
+        var r = Math.floor(pos.x - worldOffset.x)
+        var c = Math.floor(pos.z - worldOffset.z)
 
         var pos = [];
         if (angle == 0)  {
@@ -417,10 +423,11 @@ var floorPlan = function(type, r, c, npoints) {
         getStartingPoint: getStartingPoint,
         setRotation: setRotation,
         setWorldOffset: setWorldOffset,
+        getWorldOffset: getWorldOffset,
         getAllWalls: getAllWalls,
         getAllFloor: getAllFloor,
         getDimensions: function() {
-            return [rows, cols];
+            return [rows + 1, cols + 1];
         }
     };
 }

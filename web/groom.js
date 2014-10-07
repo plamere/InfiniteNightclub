@@ -1,12 +1,12 @@
 
-function addFloor(grp, width, depth, color) {
+function addFloor(grp, x, y, z, width, depth, color) {
     var material = new THREE.MeshBasicMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( width, .1, depth);
     var object = new THREE.Mesh( geometry, material );
     object.position.x =  0
     object.position.y = -30
     object.position.z = 0
-    moveTo(object, 0, -1, 0, 2, 0);
+    moveTo(object, x, y, z, 0, 0);
     grp.add( object );
 }
 
@@ -26,14 +26,6 @@ function createSimpleFloor(width, depth, spacing, color) {
     return floor;
 }
 
-function randomOnSphere(radius) {
-    var theta = Math.random() * 2 *  Math.PI;
-    var phi = Math.random() * 2 *  Math.PI;
-    var x = radius * Math.sin(theta) * Math.cos(phi);
-    var y = radius * Math.sin(theta) * Math.sin(phi);
-    var z = radius * Math.cos(theta);
-    return new THREE.Vector3(x,y,z);
-}
 
 function addTextTile(grp, text, x, y, z) {
     var dynamicTexture  = new THREEx.DynamicTexture(768,128);
@@ -45,7 +37,7 @@ function addTextTile(grp, text, x, y, z) {
     grp.add( mesh );
 }
 
-function addArtistTile(grp, artist, x, y, z) {
+function addArtistTile(grp, artist, x, y, z, callback) {
     var cubeWidth = 1;
     if (artist.image) {
         var cw = cubeWidth * 3;
@@ -62,8 +54,11 @@ function addArtistTile(grp, artist, x, y, z) {
                 object.position.x = -100
                 object.position.y = y
                 object.position.z = z;
-                moveTo(object, x, y, z, 2, 0);
+                //moveTo(object, x, y, z, 0, 0);
                 grp.add(object);
+                if (callback) {
+                    callback(object);
+                }
             });
     }
 }
@@ -75,11 +70,22 @@ function addBox(grp, x, y, z, color) {
     object.position.x = -100
     object.position.y = y
     object.position.z = z;
-    moveTo(object, x, y, z, 2, 0);
+    moveTo(object, x, y, z, 0, 0);
     grp.add( object );
 }
 
-function addTrackCube(grp, track, x, y, z, which) {
+function addWall(grp, x, y, z, color) {
+    var material = new THREE.MeshBasicMaterial({ color: color});
+    var geometry = new THREE.BoxGeometry( 1, 6, 1);
+    var object = new THREE.Mesh( geometry, material );
+    object.position.x = -100
+    object.position.y = y
+    object.position.z = z;
+    moveTo(object, x, y, z, 0, 0);
+    grp.add( object );
+}
+
+function addTrackCube(grp, track, x, y, z, which, callback) {
     var cubeWidth = 1;
     if (track.image) {
         var cw = cubeWidth;
@@ -102,8 +108,15 @@ function addTrackCube(grp, track, x, y, z, which) {
                 console.log('clicked on', track.title);
                 playTrack(track);
             }
-            moveTo(object, x, y, z, 2, delay);
+            object.play = function() {
+                playTrack(track);
+            }
+            moveTo(object, x, y, z, 0, delay);
             grp.add(object);
+
+            if (callback) {
+                callback(object);
+            }
         });
     }
 }
@@ -149,45 +162,67 @@ function getRandomSpot(floorMap, gwidth, gheight) {
     return [x,y];
 }
 
-function createSimpleRoomViz(room) {
-    var minWidth = 35;
-    var maxWidth = 50;
-    var minDepth = 35;
-    var maxDepth = 50;
+function createSimpleRoomViz(room, x, y, z, rotate) {
+    var minWidth = 25;
+    var maxWidth = 30;
+    var minDepth = 25;
+    var maxDepth = 30;
     var height = 6;
 
     if (room.floorPlan === undefined) {
         var width = randomBetween(minWidth, maxWidth);
         var depth = randomBetween(minDepth, maxDepth);
         room.floorPlan = floorPlan('random', width, depth, room.alltracks.length);
+        room.floorPlan.setWorldOffset(x,y,z);
+        room.floorPlan.setRotation(rotate);
     }
     var group = new THREE.Object3D();
     console.log('csrv', room.alltracks.length);
 
     var walls = room.floorPlan.getAllWalls();
     _.each(walls, function(wall) {
+        // console.log('wall', wall[0], wall[1]);
         var world = room.floorPlan.mazePosToWorld(wall);
-        addBox(group, world.x, world.y, world.z, 'green');
+        addWall(group, world.x, world.y, world.z, 'green');
     });
 
     var dims = room.floorPlan.getDimensions();
-    addFloor(group, dims[0], dims[1], 'grey');
+    var worldDims = room.floorPlan.mazePosToWorld([dims[0]/2, dims[1]/2]);
+    console.log('floor', dims, worldDims);
+    addFloor(group, worldDims.x, -1, worldDims.z, dims[0], dims[1], 'grey');
 
     var reserved = room.floorPlan.getAllReserved();
     _.each(room.alltracks, function(track, i) {
         if (reserved.length > 0) {
             var spot = reserved.pop(0);
             var world = room.floorPlan.mazePosToWorld(spot);
-            addTrackCube(group, track, world.x, world.y, world.z, i);
+            addTrackCube(group, track, world.x, world.y, world.z, i,
+            function(obj) {
+                room.floorPlan.pset(spot, obj);
+            });
         }
     });
 
-    room.floorPlan.logMaze();
+    var artistGroup = new THREE.Object3D();
+    var center = [Math.floor(dims[0]/2), Math.floor(dims[1]/2)];
+    _.each(room.artists, function(artist, i) {
+        addArtistTile(artistGroup, artist, 0,0,0, function() {
+           console.log('att', artistGroup.children.length, room.artists.length);
+           if (artistGroup.children.length == room.artists.length) {
+                goCircle(artistGroup, 3);
+                moveTo(artistGroup, center[0], 3, center[1], 2, 0);
+           }
+        });
+    });
+
+    group.add(artistGroup);
+
+    // room.floorPlan.logMaze();
     return group;
 }
 
-function createVisualization(room) {
-    room.viz = createSimpleRoomViz(room);
+function createVisualization(room, xoffset, yoffset, zoffset, rotation) {
+    room.viz = createSimpleRoomViz(room, xoffset, yoffset, zoffset, rotation);
     //room.viz = createTestRoomViz(room);
     return room.viz;
 }
