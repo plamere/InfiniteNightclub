@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="lib/jquery.min.js"></script>
+    <script src="lib/underscore-min.js"></script>
+    <script src="floorplan.js"></script>
+    <script src="misc.js"></script>
+</head>
+
+<body>
+test
+
+<pre id="empty"> </pre>
+<pre id="maze"> </pre>
+<pre id="maze2"> </pre>
+<pre id="maze3"> </pre>
+
+<script>
+"use strict";
+
+function test() {
+    console.log('test');
+
+    var fp = floorPlan('empty', 10, 10);
+    fp.show($("#empty"));
+
+    var fp = floorPlan('random', 30, 30,  10);
+    fp.show($("#maze"));
+
+    var fp = floorPlan('random', 30, 60,  50);
+    fp.show($("#maze2"));
+
+    var fp = floorPlan('random', 30, 60,  950);
+    fp.show($("#maze3"));
+
+    console.log('rotation 0');
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+
+    console.log('rotation 90');
+    fp.setRotation(90);
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw 90', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+
+    console.log('rotation 180');
+    fp.setRotation(180);
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw 180', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+
+    console.log('rotation 270');
+    fp.setRotation(270);
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw 270', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+
+    console.log('rotation 0 swc x:100, z:200');
+    fp.setWorldOffset(100,0,200);
+    fp.setRotation(0);
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw 0 swc', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+
+    console.log('rotation 270 swc x:100, z:200');
+    fp.setWorldOffset(100,0,200);
+    fp.setRotation(270);
+    for (var r = 0; r < 10; r++) {
+        for (var c = 0; c < 10; c++) {
+            var world = fp.mazePosToWorld([r,c]);
+            var p = fp.worldPosToMaze(world);
+            console.log('mptw 270 swc', r, c, world.x, world.z, p[0], p[1]);
+        }
+    }
+}
+
+$(document).ready( function() { test(); });
+</script>
+
+</body>
+</html>

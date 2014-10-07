@@ -1,0 +1,20 @@
+body {
+    background-color:#222222;
+    color:#dddddd;
+}
+
+#main {
+}
+
+#the-scene {
+    width:100%;
+    height:100%;
+}
+
+#controls {
+    margin-top:60px;
+}
+
+.room-name {
+    color:blue;
+}

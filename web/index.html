@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title> The Infinite Nightclub</title>
+    <link href="sp-bootstrap/sp-bootstrap.min.css" rel="stylesheet">
+    <link type="text/css" href="styles.css" rel="stylesheet" />
+    <script src="lib/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse"
+data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">
+            <span class="navbar-logo">Spotify</span>
+            <span class="navbar-title">The Infinite Nightclub</span>
+          </a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <a href="https://www.spotify.com/" class="btn btn-sm btn-primary navbar-btn navbar-right">Get
+Spotify</a>
+        </div>
+        <!--/.navbar-collapse -->
+      </div>
+    </div>
+
+    <div class="container" id="controls">
+    </div>
+    <div class="acontainer" id="main">
+        <div id='the-scene'> </div>
+    </div>
+<script>
+
+"use strict";
+var camera, scene, renderer, controls, stats; 
+var roomManager = null;
+var allRooms = null;
+var curRoom = null;
+var curTrack = null;
+var cameraControls = null;
+
+var topBorder = 10;
+var clock = null;
+var audio = null;
+var monkey = false;
+var audio = $("<audio>");
+var removeMe = [];
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight - topBorder);
+}
+
+function clickHandler( e ) {
+    var projector = new THREE.Projector();
+    var mouseVector = new THREE.Vector3();
+
+    mouseVector.x = 2 * (e.offsetX / renderer.domElement.clientWidth) - 1;
+    mouseVector.y = 1 - 2 * ( e.offsetY / renderer.domElement.clientHeight );
+    console.log('ec', e.clientX, e.clientY);
+    console.log('mv', mouseVector.x, mouseVector.y);
+
+    var raycaster = projector.pickingRay( mouseVector, camera );
+    var intersects = raycaster.intersectObjects( curRoom.viz.children);
+        
+    if (intersects.length > 0) {
+        var obj = intersects[0].object;
+        while (obj) {
+            console.log('clicked', obj);
+            if ('clicked' in obj) {
+                obj.clicked();
+                break;
+            } else {
+                obj = obj.parent;
+            }
+        }
+    }
+}
+
+function addCameraControl(camera, scene, maze) {
+    controls = new THREE.TrackballControls( camera, renderer.domElement);
+}
+
+
+function deleteCurrentRoom() {
+    if (curRoom && curRoom.viz != null) {
+        var cgroup = curRoom.viz;
+        curRoom.viz = null;
+
+        _.each(cgroup.children, function(obj) {
+            var dest = randomOnSphere(30);
+            moveTo(obj, dest.x, dest.y - 150, dest.z, 3, 0);
+        });
+
+        setTimeout(function() {
+            console.log('remove scene', cgroup);
+            removeMe.push(cgroup);
+        }, 5000);
+    }
+}
+
+function showRoomControls(room) {
+    $("#controls").empty();
+    var roomName = $("<span>");
+    roomName.text(curRoom.name);
+    roomName.addClass('room-name');
+    $("#controls").append(roomName);
+    $("#controls").append("&nbsp;---&nbsp;");
+    _.each(curRoom.sims, function(sname) {
+        var a = $("<a>").text(sname);
+        a.on('click', function() {
+            goToRoom(sname);
+        });
+        $("#controls").append(a);
+        $("#controls").append("&nbsp;");
+    });
+
+    var goMonkey = $("<a>").text('monkey');
+    goMonkey.on('click', function() {
+        monkey = !monkey;
+    });
+    $("#controls").append(goMonkey);
+}
+
+
+function showCurrentRoom() {
+    console.log('scr', curRoom.viz);
+    deleteCurrentRoom(curRoom);
+    var viz = createVisualization(curRoom);
+    scene.add(viz);
+    //cameraControls.setFloorplan(curRoom.floorPlan);
+    showRoomControls(curRoom);
+
+
+    if (monkey) {
+        console.log('monkey');
+        setTimeout(function() { 
+            console.log('monkey here');
+            var nextRoom = _.sample(curRoom.sims);
+            goToRoom(nextRoom);
+        }, 10000);
+    }
+}
+
+function goToRoom(room) {
+    deleteCurrentRoom();
+    roomManager.fetchRoom(room, function(room) {
+        curRoom = room;
+        showCurrentRoom();
+    });
+}
+
+function playNextRoomTrack() {
+    if (curRoom.curTrackIndex >= curRoom.alltracks) {
+        curRoom.curTrackIndex = 0;
+    }
+    var track = curRoom.alltracks[curRoom.curTrackIndex++];
+    playTrack(track);
+}
+
+function playTrack(track) {
+    if (curTrack) {
+        if (curTrack.cube) {
+            curTrack.cube.material.color.setRGB( 1, 1, 1);
+        }
+        curTrack = null;
+    }
+    curTrack = track;
+    curTrack.cube.material.color.setRGB( 1, 0, 0);
+
+    console.log('playing', track);
+    audio.attr('src', track.audio);
+    audio.get(0).play();
+}
+
+function init3D() {
+    clock = new THREE.Clock();
+    window.addEventListener( 'resize', onWindowResize, false );
+    camera = new THREE.PerspectiveCamera(70, 
+        window.innerWidth / (window.innerHeight - topBorder), .1, 10000 );
+    scene = new THREE.Scene();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight - topBorder);
+    $("#the-scene").append($(renderer.domElement));
+
+    camera.position.y = 5;
+    camera.position.z = 5;
+
+
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.top = '0px';
+    $("<body>").append( $(stats.domElement) );
+
+    addCameraControl(camera, scene, null);
+
+    var render = function () {
+        var delta = clock.getDelta();
+        controls.update(delta);
+        if (cameraControls) {
+            cameraControls.update(delta);
+        }
+        TWEEN.update();
+        requestAnimationFrame(render);
+        renderer.render(scene, camera);
+        if (curRoom && curRoom.viz) {
+            curRoom.viz.rotation.y += .01;
+        }
+
+        while (removeMe.length > 0) {
+            scene.remove(removeMe.pop());
+        }
+    };
+
+    render();
+    addStars(scene);
+    addLights(scene);
+    addAxes(scene);
+}
+
+function initUI() {
+    audio = $("<audio>");
+    audio.get(0).addEventListener('ended', function() {
+        playNextRoomTrack();
+    });
+    $("#the-scene").click(clickHandler);
+}
+
+$(document).ready( 
+    function() { 
+        initUI(); 
+        roomManager = initRoomManager();
+        roomManager.fetchRooms( function(rooms) {
+            allRooms = rooms;
+            roomManager.fetchRoom('pop', function(room) {
+                curRoom = room;
+                init3D();
+                showCurrentRoom();
+            });
+        });
+    }
+);
+</script>
+<script src="lib/underscore-min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="lib/three.min.js"></script>
+<script src="lib/tween.min.js"></script>
+<script src="lib/TrackballControls.js"></script>
+<script src="lib/threex.dynamictexture.js"></script>
+<script src="lib/stats.min.js"></script>
+<script src="MazeControls.js"></script>
+<script src="misc.js"></script>
+<script src="floorplan.js"></script>
+<script src="rooms.js"></script>
+<script src="groom.js?v3"></script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-3675615-45', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>
