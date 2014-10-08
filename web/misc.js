@@ -81,15 +81,16 @@ function addLights(scene) {
     var ambientLight = new THREE.AmbientLight( 0xaaaaaa);
     scene.add( ambientLight );
 
+    if (true)
     {
         var spotLight   = new THREE.SpotLight( 0xFFFFFF );
-        spotLight.target.position.set( 20, 0, 20 );
-        spotLight.shadowCameraNear  = 0.01;     
+        spotLight.target.position.set( 25, 0, 25 );
+        spotLight.shadowCameraNear  = 5;
         spotLight.castShadow        = true;
-        spotLight.shadowDarkness    = 0.4;
-        spotLight.position.x = 20;
-        spotLight.position.y = 30;
-        spotLight.position.z = 20;
+        spotLight.shadowDarkness    = 0.2;
+        spotLight.position.x = 30;
+        spotLight.position.y = 15;
+        spotLight.position.z = 30;
         scene.add( spotLight );
     }
 
@@ -184,7 +185,7 @@ function bounce(obj, scale) {
         scale = 1.3;
     }
     //var target = { x: obj.scale.x * scale, y: obj.scale.y * scale, z: obj.scale.z *scale};
-    var target = { x: obj.scale.x * 1, y: obj.scale.y * scale, z: obj.scale.z *1};
+    var target = { x: obj.scale.x * .8, y: obj.scale.y * scale, z: obj.scale.z *.8};
     var dest = { x:obj.scale.x, y: obj.scale.y, z:obj.scale.z};
     var upTween = new TWEEN.Tween(obj.scale).to(target, 300)
              .easing( TWEEN.Easing.Quadratic.Out).delay(0);
@@ -214,7 +215,6 @@ function goCircle(group, width) {
     var theta = 0;
     var delta = 2 * Math.PI / group.children.length;
 
-    console.log('GoCircle', group.children.length, circumference, radius);
     for (var i = 0; i < group.children.length; i++) {
         var song = group.children[i];
         var x = radius * Math.sin(theta);

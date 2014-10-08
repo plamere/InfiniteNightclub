@@ -225,7 +225,7 @@ THREE.MazeControls.prototype.setFloorplan = function (floorplan, which) {
     var startingPos = floorplan.mazePosToWorld(start);
 
     this.frotate(angles[which]);
-    this.llgoPos(startingPos.x -.5, startingPos.y -.5, startingPos.z -.5, true);
+    this.llgoPos(startingPos.x -.5, startingPos.y -.50, startingPos.z -.5, true);
 }
 
 

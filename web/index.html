@@ -34,9 +34,6 @@ Spotify</a>
         <!--/.navbar-collapse -->
       </div>
     </div>
-
-    <div class="container" id="controls">
-    </div>
     <div class="acontainer" id="main">
         <div id='the-scene'> </div>
     </div>
@@ -93,19 +90,23 @@ function clickHandler( e ) {
     var projector = new THREE.Projector();
     var mouseVector = new THREE.Vector3();
 
-    mouseVector.x = 2 * (e.offsetX / renderer.domElement.clientWidth) - 1;
-    mouseVector.y = 1 - 2 * ( e.offsetY / renderer.domElement.clientHeight );
-
-    //console.log('ec', e.clientX, e.clientY);
-    //console.log('mv', mouseVector.x, mouseVector.y);
+    console.log('mouse', e.offsetX, e.offsetY);
+    console.log('mouse', e);
+    if (false) {
+        mouseVector.x = 2 * (e.offsetX / renderer.domElement.clientWidth) - 1;
+        mouseVector.y = 1 - 2 * ( e.offsetY / renderer.domElement.clientHeight );
+    } else {
+        mouseVector.x = 2 * (e.pageX / window.innerWidth) - 1;
+        mouseVector.y = 1 - 2 * ( e.pageY / window.innerHeight);
+    }
 
     var raycaster = projector.pickingRay( mouseVector, camera );
     var intersects = raycaster.intersectObjects( curRoom.viz.children);
         
+    console.log('raycast', mouseVector, intersects);
     if (intersects.length > 0) {
         var obj = intersects[0].object;
         while (obj) {
-            // console.log('clicked', obj);
             if ('clicked' in obj) {
                 obj.clicked();
                 break;
@@ -126,9 +127,7 @@ function addCameraControl(camera, scene, maze) {
 
 
 function deleteRoom(room) {
-    console.log('deleteRoom', room.viz);
     if (room && room.viz != null) {
-        console.log('inner deleteCurRoom', room.viz);
         clearUpdates();
         TWEEN.removeAll();
         var cgroup = room.viz;
@@ -162,31 +161,10 @@ function showRoomControls(room) {
 
 
 function showCurrentRoom(lastRoomName) {
-    console.log('scr', curRoom.viz);
     var viz = createVisualization(curRoom, 0, 0,0, 0);
     scene.add(viz);
-
     var which = getConnection(curRoom, lastRoomName)
     controls.setFloorplan(curRoom.floorPlan, which);
-    // showRoomControls(curRoom);
-
-    if (monkey) {
-        console.log('monkey');
-        setTimeout(function() { 
-            console.log('monkey here');
-            var nextRoom = _.sample(curRoom.sims);
-            goToRoom(nextRoom);
-        }, 10000);
-    }
-}
-
-function connectRooms(oldRoom, newRoom) {
-    var oname = oldRoom.name;
-    var nname = newRoom.name;
-
-    var oport = getConnection(oldRoom, nname);
-    var nport = getConnection(newRoom, oname);
-    console.log('connect rooms', oldRoom, oport, newRoom, nport);
 }
 
 function getConnection(room, oname) {
@@ -231,7 +209,6 @@ function playTrack(track) {
         bounce(curTrack.cube);
     }
 
-    console.log('playing', track);
     audio.attr('src', track.audio);
     audio.get(0).play();
 }
@@ -253,10 +230,10 @@ function init3D() {
 
 
 
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight - topBorder);
-    renderer.shadowMapEnabled = true;
-    renderer.shadowMapType = THREE.PCFSoftShadowMap;
+    //renderer.shadowMapEnabled = true;
+    //renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
     $("#the-scene").append($(renderer.domElement));
 
@@ -304,6 +281,7 @@ function initUI() {
     audio.get(0).addEventListener('ended', function() {
         playNextRoomTrack();
     });
+    console.log('add click handler');
     $("#the-scene").click(clickHandler);
 }
 
@@ -313,7 +291,7 @@ $(document).ready(
         roomManager = initRoomManager();
         roomManager.fetchRooms( function(rooms) {
             allRooms = rooms;
-            roomManager.fetchRoom('pop', function(room) {
+            roomManager.fetchRoom('metal', function(room) {
                 curRoom = room;
                 init3D();
                 showCurrentRoom('nowhere');

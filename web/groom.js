@@ -2,12 +2,24 @@
 var rampWidth = 3;
 
 function addFloor(grp, x, y, z, width, depth, color) {
+    var texture = THREE.ImageUtils.loadTexture('assets/floor.jpg', undefined,
+    function() {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 15, 15 );
+        var material = new THREE.MeshLambertMaterial({ map: texture });
+        var geometry = new THREE.BoxGeometry( width, .1, depth);
+        var object = new THREE.Mesh( geometry, material );
+        object.receiveShadow = true;
+        goTo(object, x, y, z, 0, 0);
+        grp.add( object );
+    });
+}
+
+function addFloor2(grp, x, y, z, width, depth, color) {
     var material = new THREE.MeshLambertMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( width, .1, depth);
     var object = new THREE.Mesh( geometry, material );
-    object.position.x =  0
-    object.position.y = -30
-    object.position.z = 0
     object.receiveShadow = true;
     goTo(object, x, y, z, 0, 0);
     grp.add( object );
@@ -33,14 +45,14 @@ function createSimpleFloor(width, depth, spacing, color) {
 function addTextTile(grp, text, x, y, z, callback) {
     var dynamicTexture  = new THREEx.DynamicTexture(768,128);
     dynamicTexture.context.font = "bolder 72px Verdana";
-    dynamicTexture.clear('cyan').drawText(text, undefined, 84, 'green')
+    dynamicTexture.clear('#232323').drawText(text, undefined, 84, 'green')
     var geometry    = new THREE.BoxGeometry( 6, 1, 1);
     var material    = new THREE.MeshLambertMaterial({ map:dynamicTexture.texture});
     var mesh    = new THREE.Mesh( geometry, material );
-    mesh.castShadow = true;
     goTo(mesh, x, y, z, 0, 0);
     grp.add( mesh );
     if (callback) {
+        mesh.castShadow = true;
         callback(mesh);
     }
 }
@@ -55,7 +67,7 @@ function addArtistTile(grp, artist, x, y, z, callback) {
         var texture = THREE.ImageUtils.loadTexture('img?url=' +
             artist.image.url, undefined, function() {
                 texture.flipY = true;
-                var geometry = new THREE.BoxGeometry( cw, ch, .01);
+                var geometry = new THREE.BoxGeometry( cw, ch, .05);
                 var material = new THREE.MeshLambertMaterial({ map: texture });
                 var object = new THREE.Mesh( geometry, material);
                 object.castShadow = true;
@@ -64,7 +76,14 @@ function addArtistTile(grp, artist, x, y, z, callback) {
                 if (callback) {
                     callback(object);
                 }
+            }, function() {
+                console.log('error loading texture');
+                if (callback) {
+                    callback(null);
+                }
             });
+    } else {
+        callback(null);
     }
 }
 
@@ -77,6 +96,43 @@ function addBox(grp, x, y, z, color) {
 }
 
 function addWall(grp, x, y, z, color) {
+    var texture = THREE.ImageUtils.loadTexture('assets/blue_wall.jpg', undefined,
+    function() {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 1,3);
+        var material = new THREE.MeshLambertMaterial({ map: texture });
+        var geometry = new THREE.BoxGeometry( 1, 3, 1);
+        var object = new THREE.Mesh( geometry, material );
+        goTo(object, x, y, z, 0, 0);
+        grp.add( object );
+    });
+}
+
+function addClosedWall(grp, x, y, z, color) {
+    var texture = THREE.ImageUtils.loadTexture('assets/blue_wall.jpg', undefined,
+    function() {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set( 1, 1 );
+        var material = new THREE.MeshLambertMaterial({ map: texture });
+        var geometry = new THREE.BoxGeometry( rampWidth, 3, rampWidth);
+        var object = new THREE.Mesh( geometry, material );
+        goTo(object, x, y, z, 0, 0);
+        grp.add( object );
+    });
+}
+
+function addClosedWall2(grp, x, y, z, color) {
+    var material = new THREE.MeshLambertMaterial({ color: color});
+    var geometry = new THREE.BoxGeometry( rampWidth, 3, rampWidth);
+    var object = new THREE.Mesh( geometry, material );
+    goTo(object, x, y, z, 0, 0);
+    grp.add( object );
+    return object;
+}
+
+function addWall2(grp, x, y, z, color) {
     var material = new THREE.MeshLambertMaterial({ color: color, ambient:"#88EE88"});
     var geometry = new THREE.BoxGeometry( 1, 3, 1);
     var object = new THREE.Mesh( geometry, material );
@@ -114,14 +170,6 @@ function addTardis(grp, x, z) {
     return object;
 }
 
-function addClosedWall(grp, x, y, z, color) {
-    var material = new THREE.MeshLambertMaterial({ color: color});
-    var geometry = new THREE.BoxGeometry( rampWidth, 3, rampWidth);
-    var object = new THREE.Mesh( geometry, material );
-    goTo(object, x, y, z, 0, 0);
-    grp.add( object );
-    return object;
-}
 
 function addTrackCube(grp, track, x, y, z, which, callback) {
     var cubeWidth = 1;
@@ -155,7 +203,7 @@ function addTrackCube(grp, track, x, y, z, which, callback) {
 }
 
 function addTrackTile(grp, track, x, y, z, which, callback) {
-    var cubeWidth = 1.5;
+    var cubeWidth = 1.3;
     if (track.image) {
         var cw = cubeWidth;
         var texture = THREE.ImageUtils.loadTexture('img?url=' + track.image.url,
@@ -184,33 +232,6 @@ function addTrackTile(grp, track, x, y, z, which, callback) {
     }
 }
 
-function createTestRoomViz(room) {
-    var maxTracksPerRow = 20;
-    var artistSpacing = 4;
-    var trackSpacing = 1.5;
-    var xoffset = curRoom.artists.length * artistSpacing / 2;
-    var yoffset = maxTracksPerRow * trackSpacing / 2;
-    var zoffset = maxTracksPerRow * trackSpacing / 2;
-    var group = new THREE.Object3D();
-
-    var whichTrack = 0;
-
-    addTextTile(group, room.name, 0,0,0);
-    _.each(room.artists, function(artist, ai) {
-        addArtistTile(group, artist, ai * artistSpacing - xoffset, 0, 3.5);
-        _.each(artist.tracks,function(track, ti) {
-            var row = whichTrack % maxTracksPerRow;
-            var col = Math.floor(whichTrack / maxTracksPerRow);
-            addTrackCube(group, track, 
-                row * trackSpacing - yoffset,
-                col * trackSpacing + 1 , 0, ti);
-            whichTrack++;
-        });
-    });
-
-    return group;
-}
-
 function createWall(width, height, color) {
     var material    = new THREE.MeshLambertMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( width, height, .01);
@@ -227,9 +248,9 @@ function getRandomSpot(floorMap, gwidth, gheight) {
 
 function createSimpleRoomViz(room, x, y, z, rotate) {
     var minWidth = 25;
-    var maxWidth = 30;
+    var maxWidth = 35;
     var minDepth = 25;
-    var maxDepth = 30;
+    var maxDepth = 35;
     var height = 6;
 
     if (true || room.floorPlan === undefined) {
@@ -265,7 +286,7 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
         if (reserved.length > 0) {
             var spot = reserved.pop(0);
             var world = room.floorPlan.mazePosToWorld(spot);
-            addTrackCube(group, track, world.x, world.y, world.z, i,
+            addTrackCube(group, track, world.x, 0, world.z, i,
             function(obj) {
                 room.floorPlan.pset(spot, obj);
             });
@@ -280,9 +301,11 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
 
     var artistGroup = new THREE.Object3D();
     var center = [Math.floor(dims[0]/2), Math.floor(dims[1]/2)];
+    var count = 0;
     _.each(room.artists, function(artist, i) {
-        addArtistTile(artistGroup, artist, 0,0,0, function() {
-           if (artistGroup.children.length == room.artists.length) {
+        addArtistTile(artistGroup, artist, 0,0,0, function(tile) {
+           count++;
+           if (count == room.artists.length) {
                 goCircle(artistGroup, 3);
                 addTextTile(artistGroup, room.name, 0,0,0);
                 goTo(artistGroup, center[0], 2, center[1], 2, 0);
@@ -302,21 +325,23 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
 
     // add labels
 
-    _.each(room.floorPlan.getDoors(), function(door, i) {
-        if (i < room.sims.length) {
-            var title = room.sims[i];
-            addTextTile(group, title, door[0], 2, door[1], function(obj) {
-                if (i % 2 == 1) {
-                    obj.rotation.y = Math.PI / 2;
-                }
-            });
-        }
-    });
+    if (false) {
+        _.each(room.floorPlan.getDoors(), function(door, i) {
+            if (i < room.sims.length) {
+                var title = room.sims[i];
+                addTextTile(group, title, door[0], 2, door[1], function(obj) {
+                    if (i % 2 == 1) {
+                        obj.rotation.y = Math.PI / 2;
+                    }
+                });
+            }
+        });
+    }
 
     _.each(room.floorPlan.getConnections(), function(door, i) {
         if (i < room.sims.length) {
             var title = room.sims[i];
-            addTextTile(group, title, door[0], 2, door[1], function(obj) {
+            addTextTile(group, title, door[0], 3.0, door[1], function(obj) {
                 if (i % 2 == 1) {
                     obj.rotation.y = Math.PI / 2;
                 }
@@ -345,6 +370,8 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
             room.floorPlan.pset(connector, obj);
         }
     });
+    /*
+    */
 
     return group;
 }
