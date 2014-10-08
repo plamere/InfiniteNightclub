@@ -59,6 +59,24 @@ var removeMe = [];
 
 var trackBallCamera = false;
 
+var updates = [];
+
+
+function addUpdates(obj) {
+    if ('update' in obj) {
+        updates.push(obj);
+    }
+}
+
+function clearUpdates() {
+    updates = [];
+}
+
+function processUpdates() {
+    _.each(updates, function(obj) {
+        obj.update();
+    });
+}
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -102,19 +120,13 @@ function addCameraControl(camera, scene, maze) {
 
 
 function deleteCurrentRoom() {
+    console.log('deleteCurRoom', curRoom.viz);
     if (curRoom && curRoom.viz != null) {
+        console.log('inner deleteCurRoom', curRoom.viz);
+        clearUpdates();
         var cgroup = curRoom.viz;
+        scene.remove(cgroup);
         curRoom.viz = null;
-
-        _.each(cgroup.children, function(obj) {
-            var dest = randomOnSphere(30);
-            moveTo(obj, dest.x, dest.y - 150, dest.z, 3, 0);
-        });
-
-        setTimeout(function() {
-            console.log('remove scene', cgroup);
-            removeMe.push(cgroup);
-        }, 5000);
     }
 }
 
@@ -142,17 +154,12 @@ function showRoomControls(room) {
 }
 
 
-var xspot = 0;
 function showCurrentRoom() {
     console.log('scr', curRoom.viz);
-    //deleteCurrentRoom(curRoom);
-    var viz = createVisualization(curRoom, xspot, 0,0, 0);
-    var dim = curRoom.floorPlan.getDimensions();
-    xspot += dim[0];
+    var viz = createVisualization(curRoom, 0, 0,0, 0);
     scene.add(viz);
     controls.setFloorplan(curRoom.floorPlan);
     showRoomControls(curRoom);
-
 
     if (monkey) {
         console.log('monkey');
@@ -183,14 +190,12 @@ function getConnection(room, oname) {
 }
 
 function goToRoom(room) {
-    //deleteCurrentRoom();
     roomManager.fetchRoom(room, function(room) {
         var oldRoom = curRoom;
-        curRoom = room;
-
         if (oldRoom) {
-            connectRooms(oldRoom, room);
+            deleteCurrentRoom();
         }
+        curRoom = room;
         showCurrentRoom();
     });
 }
@@ -247,6 +252,7 @@ function init3D() {
             cameraControls.update(delta);
         }
         TWEEN.update();
+        processUpdates();
         requestAnimationFrame(render);
         renderer.render(scene, camera);
         if (curRoom && curRoom.viz) {

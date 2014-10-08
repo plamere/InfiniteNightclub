@@ -195,6 +195,12 @@ function moveTo(o, x, y, z, time, delay) {
         .start();
 }
 
+function goTo(o, x, y, z) {
+    o.position.x = x;
+    o.position.y = y;
+    o.position.z = z;
+}
+
 function rotateTo(o, x, y, z, time, delay) {
     var curPos = { x: o.rotation.x, y:o.rotation.y, z:o.rotation.z };
     var newPos = { x: x, y:y, z:z };
@@ -215,12 +221,4 @@ function dither() {
     return 0;
 }
 
-function randomOnSphere(radius) {
-    var theta = Math.random() * 2 *  Math.PI;
-    var phi = Math.random() * 2 *  Math.PI;
-    var x = radius * Math.sin(theta) * Math.cos(phi);
-    var y = radius * Math.sin(theta) * Math.sin(phi);
-    var z = radius * Math.cos(theta);
-    return new THREE.Vector3(x,y,z);
-}
 

@@ -1,4 +1,5 @@
 
+
 function addFloor(grp, x, y, z, width, depth, color) {
     var material = new THREE.MeshBasicMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( width, .1, depth);
@@ -6,7 +7,7 @@ function addFloor(grp, x, y, z, width, depth, color) {
     object.position.x =  0
     object.position.y = -30
     object.position.z = 0
-    moveTo(object, x, y, z, 0, 0);
+    goTo(object, x, y, z, 0, 0);
     grp.add( object );
 }
 
@@ -27,14 +28,18 @@ function createSimpleFloor(width, depth, spacing, color) {
 }
 
 
-function addTextTile(grp, text, x, y, z) {
+function addTextTile(grp, text, x, y, z, callback) {
     var dynamicTexture  = new THREEx.DynamicTexture(768,128);
     dynamicTexture.context.font = "bolder 72px Verdana";
     dynamicTexture.clear('cyan').drawText(text, undefined, 84, 'green')
     var geometry    = new THREE.BoxGeometry( 6, 1, 1);
     var material    = new THREE.MeshBasicMaterial({ map:dynamicTexture.texture});
     var mesh    = new THREE.Mesh( geometry, material );
+    goTo(mesh, x, y, z, 0, 0);
     grp.add( mesh );
+    if (callback) {
+        callback(mesh);
+    }
 }
 
 function addArtistTile(grp, artist, x, y, z, callback) {
@@ -51,10 +56,7 @@ function addArtistTile(grp, artist, x, y, z, callback) {
                 var material = new THREE.MeshLambertMaterial({ map: texture });
 
                 var object = new THREE.Mesh( geometry, material);
-                object.position.x = -100
-                object.position.y = y
-                object.position.z = z;
-                //moveTo(object, x, y, z, 0, 0);
+                goTo(object, x, y, z, 0, 0);
                 grp.add(object);
                 if (callback) {
                     callback(object);
@@ -67,10 +69,7 @@ function addBox(grp, x, y, z, color) {
     var material = new THREE.MeshBasicMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( 1, 1, 1);
     var object = new THREE.Mesh( geometry, material );
-    object.position.x = -100
-    object.position.y = y
-    object.position.z = z;
-    moveTo(object, x, y, z, 0, 0);
+    goTo(object, x, y, z, 0, 0);
     grp.add( object );
 }
 
@@ -78,10 +77,7 @@ function addWall(grp, x, y, z, color) {
     var material = new THREE.MeshBasicMaterial({ color: color});
     var geometry = new THREE.BoxGeometry( 1, 6, 1);
     var object = new THREE.Mesh( geometry, material );
-    object.position.x = -100
-    object.position.y = y
-    object.position.z = z;
-    moveTo(object, x, y, z, 0, 0);
+    goTo(object, x, y, z, 0, 0);
     grp.add( object );
 }
 
@@ -97,11 +93,6 @@ function addTrackCube(grp, track, x, y, z, which, callback) {
             var material = new THREE.MeshLambertMaterial({ map: texture });
 
             var object = new THREE.Mesh( geometry, material);
-            var initialPos = randomOnSphere(20);
-            object.position.x = initialPos.x;
-            object.position.y = initialPos.y + 50;
-            object.position.z = initialPos.z;
-            var delay = which * 0;
             object.track = track;
             track.cube = object;
             object.clicked = function() {
@@ -111,7 +102,7 @@ function addTrackCube(grp, track, x, y, z, which, callback) {
             object.play = function() {
                 playTrack(track);
             }
-            moveTo(object, x, y, z, 0, delay);
+            goTo(object, x, y, z);
             grp.add(object);
 
             if (callback) {
@@ -210,19 +201,38 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
            console.log('att', artistGroup.children.length, room.artists.length);
            if (artistGroup.children.length == room.artists.length) {
                 goCircle(artistGroup, 3);
-                moveTo(artistGroup, center[0], 3, center[1], 2, 0);
+                addTextTile(artistGroup, room.name, 0,0,0);
+                goTo(artistGroup, center[0], 3, center[1], 2, 0);
            }
         });
     });
 
+    artistGroup.update = function() {
+        this.rotation.y += .01;
+    };
+    addUpdates(artistGroup);
+
+
     group.add(artistGroup);
 
     // room.floorPlan.logMaze();
+
+    // add labels
+
+    _.each(room.floorPlan.getDoors(), function(door, i) {
+        console.log('att', door[0], 3, door[1]);
+        var title = room.sims[i];
+        addTextTile(group, title, door[0], 4, door[1], function(obj) {
+            if (i % 2 == 1) {
+                obj.rotation.y = Math.PI / 2;
+            }
+        });
+    });
+
     return group;
 }
 
 function createVisualization(room, xoffset, yoffset, zoffset, rotation) {
     room.viz = createSimpleRoomViz(room, xoffset, yoffset, zoffset, rotation);
-    //room.viz = createTestRoomViz(room);
     return room.viz;
 }

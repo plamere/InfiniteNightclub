@@ -147,7 +147,7 @@ THREE.MazeControls.prototype.llmove = function (distance, compassOffset) {
     this.llgoPos(xpos, ypos, zpos);
 }
 
-THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos) {
+THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos, immediate) {
     console.log('llgoPos', xpos, ypos, zpos);
     if (this.floorplan == null) {
         console.log('no floorplan, skipping');
@@ -160,8 +160,14 @@ THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos) {
     if (moveOK) {
     console.log("moveok", this.compass, this.camera.position.x, this.camera.position.z);
         //console.log('rc move', this.xpos, this.zpos);
-        new TWEEN.Tween(this.camera.position).to(target, 1000)
-             .easing( TWEEN.Easing.Quadratic.Out).start();
+        if (immediate) {
+            this.camera.position.x = target.x;
+            this.camera.position.y = target.y;
+            this.camera.position.z = target.z;
+        } else {
+            new TWEEN.Tween(this.camera.position).to(target, 1000)
+                 .easing( TWEEN.Easing.Quadratic.Out).start();
+        }
         this.xpos = xpos;
         this.ypos = ypos;
         this.zpos = zpos;
@@ -188,7 +194,7 @@ THREE.MazeControls.prototype.setFloorplan = function (floorplan) {
     this.floorplan = floorplan;
     var start = floorplan.getStartingPoint(0);
     var startingPos = floorplan.mazePosToWorld(start);
-    this.llgoPos(startingPos.x -.5, startingPos.y -.5, startingPos.z -.5);
+    this.llgoPos(startingPos.x -.5, startingPos.y -.5, startingPos.z -.5, true);
 }
 
 

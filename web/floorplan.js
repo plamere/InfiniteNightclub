@@ -22,6 +22,7 @@ var floorPlan = function(type, r, c, npoints) {
     var rampLength = 10;
     var walkwayValue = 2;
     var connectors = [];  // E, N, W, S
+    var doors = [];  // E, N, W, S
     var worldOffset =  { x:0, y:0, z:0 }
     var angle = 0;
 
@@ -88,6 +89,11 @@ var floorPlan = function(type, r, c, npoints) {
         connectors.push( [0, colWalkway1] );
         connectors.push( [rowWalkway2, cols - 1] );
         connectors.push( [rows - 1, colWalkway2] );
+
+        doors.push( [rowWalkway1, rampLength] );
+        doors.push( [rampLength, colWalkway1] );
+        doors.push( [rowWalkway2, cols - rampLength] );
+        doors.push( [rows - rampLength, colWalkway2] );
 
         for (var row = 0; row < rows; row++) {
             for (var col = 0; col < cols; col++) {
@@ -404,6 +410,14 @@ var floorPlan = function(type, r, c, npoints) {
         return connectors[which];
     }
 
+    function getConnections() {
+        return connectors;
+    }
+
+    function getDoors() {
+        return doors;
+    }
+
     createMaze(type, r, c, npoints);
 
     return {
@@ -421,6 +435,8 @@ var floorPlan = function(type, r, c, npoints) {
         mazePosToWorld: mazePosToWorld,
         worldPosToMaze: worldPosToMaze,
         getStartingPoint: getStartingPoint,
+        getConnections: getConnections,
+        getDoors: getDoors,
         setRotation: setRotation,
         setWorldOffset: setWorldOffset,
         getWorldOffset: getWorldOffset,
