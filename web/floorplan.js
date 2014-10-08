@@ -15,13 +15,14 @@
            3
 */
 
-var floorPlan = function(type, r, c, npoints) {
+var floorPlan = function(r, c) {
     var maze = {}
     var rows;
     var cols;
-    var rampLength = 10;
-    var walkwayValue = 2;
+    var rampLength = 6;
+    var rampWidth = 3;
     var connectors = [];  // E, N, W, S
+    var startingPoints = [];  // E, N, W, S
     var doors = [];  // E, N, W, S
     var worldOffset =  { x:0, y:0, z:0 }
     var angle = 0;
@@ -33,18 +34,11 @@ var floorPlan = function(type, r, c, npoints) {
     var WALKWAY  = 'w';
     var DOOR = '*';
 
-    function createMaze(type, r, c, npoints) {
+    function createMaze(r, c) {
         rows = r + rampLength * 2;
         cols = c + rampLength * 2;
         createBaseMaze();
-        if (type == 'empty') {
-        } else if (type == 'random') {
-            createRandomMaze(npoints);
-        } else {
-            console.log('unknown maze type');
-        }
         finalizeMaze();
-        console.log('dims', rows, cols);
     }
 
 
@@ -62,6 +56,17 @@ var floorPlan = function(type, r, c, npoints) {
                 var p = [row, col];
                 if (isWall(p)) {
                     pset(p, WALL);
+                }
+            }
+        }
+    }
+
+    function reclaimReserved() {
+        for (var row = 0; row < rows; row++) {
+            for (var col = 0; col < cols; col++) {
+                var contents = get(row, col);
+                if (contents === RESERVED || (typeof contents === 'object')) {
+                    set(row, col, VISITABLE);
                 }
             }
         }
@@ -85,15 +90,21 @@ var floorPlan = function(type, r, c, npoints) {
         var colWalkway1 = randomBetween(rampLength + 1, cols - (rampLength +1));
         var colWalkway2 = randomBetween(rampLength + 1, cols - (rampLength +1));
 
-        connectors.push( [rowWalkway1, 0] );
-        connectors.push( [0, colWalkway1] );
-        connectors.push( [rowWalkway2, cols - 1] );
-        connectors.push( [rows - 1, colWalkway2] );
+        var mid = Math.floor(rampWidth / 2);
+        connectors.push( [rowWalkway1 + mid, 0] );
+        connectors.push( [0, colWalkway1 + mid] );
+        connectors.push( [rowWalkway2 + mid, cols - 1] );
+        connectors.push( [rows - 1, colWalkway2 + mid] );
 
-        doors.push( [rowWalkway1, rampLength] );
-        doors.push( [rampLength, colWalkway1] );
-        doors.push( [rowWalkway2, cols - rampLength] );
-        doors.push( [rows - rampLength, colWalkway2] );
+        startingPoints.push( [rowWalkway1 + mid, 1] );
+        startingPoints.push( [1, colWalkway1 + mid] );
+        startingPoints.push( [rowWalkway2 + mid, cols - 2] );
+        startingPoints.push( [rows - 2, colWalkway2 + mid] );
+
+        doors.push( [rowWalkway1 + mid, rampLength] );
+        doors.push( [rampLength, colWalkway1 + mid] );
+        doors.push( [rowWalkway2 + mid, cols - rampLength] );
+        doors.push( [rows - rampLength, colWalkway2 + mid] );
 
         for (var row = 0; row < rows; row++) {
             for (var col = 0; col < cols; col++) {
@@ -103,29 +114,29 @@ var floorPlan = function(type, r, c, npoints) {
 
         for (var row = 0; row < rows; row++) {
             for (var col = 0; col < cols; col++) {
-                if (row == rampLength - 1 && col == colWalkway1) {
+                if (row == rampLength - 1 && col >= colWalkway1 && col < colWalkway1 + rampWidth) {
                     set(row, col, DOOR);
-                }  else if (row == rows - rampLength + 1 && col == colWalkway2) {
+                }  else if (row == rows - rampLength + 1 && col >= colWalkway2 && col < colWalkway2 + rampWidth) {
                     set(row, col, DOOR);
                 } else if (row < rampLength) {
-                    if (col == colWalkway1) {
+                    if (col >= colWalkway1 && col < colWalkway1 + rampWidth) {
                         set(row, col, WALKWAY);
                     }
                 } else if (row > rows - rampLength) {
-                    if (col == colWalkway2) {
+                    if (col >= colWalkway2 && col < colWalkway2 + rampWidth) {
                         set(row, col, WALKWAY);
                     }
-                } else if (col == rampLength -1 && row == rowWalkway1) {
+                } else if (col == rampLength -1 && row >= rowWalkway1 && row < rowWalkway1 + rampWidth) {
                     set(row, col, DOOR);
-                } else if (col == cols - rampLength  && row == rowWalkway2) {
+                } else if (col == cols - rampLength  && row >= rowWalkway2 && row < rowWalkway2 + rampWidth) {
                     set(row, col, DOOR);
                 } 
                 else if (col < rampLength) {
-                    if (row == rowWalkway1) {
+                    if (row >= rowWalkway1 && row < rowWalkway1 + rampWidth) {
                         set(row, col, WALKWAY);
                     }
                 } else if (col >= cols - rampLength) {
-                    if (row == rowWalkway2) {
+                    if (row >= rowWalkway2 && row < rowWalkway2 + rampWidth) {
                         set(row, col, WALKWAY);
                     }
                 } else {
@@ -327,6 +338,7 @@ var floorPlan = function(type, r, c, npoints) {
                 }
             }
         }
+        results = _.shuffle(results);
         return results;
     }
 
@@ -407,7 +419,7 @@ var floorPlan = function(type, r, c, npoints) {
     }
 
     function getStartingPoint(which) {
-        return connectors[which];
+        return startingPoints[which];
     }
 
     function getConnections() {
@@ -418,7 +430,7 @@ var floorPlan = function(type, r, c, npoints) {
         return doors;
     }
 
-    createMaze(type, r, c, npoints);
+    createMaze(r, c);
 
     return {
         get:get,
@@ -430,6 +442,7 @@ var floorPlan = function(type, r, c, npoints) {
         isInMaze: isInMaze,
         isVisitable: isVisitable,
         isReserved: isReserved,
+        reclaimReserved: reclaimReserved,
         getReservedNeighbors: getReservedNeighbors,
         getAllReserved: getAllReserved,
         mazePosToWorld: mazePosToWorld,
@@ -442,6 +455,7 @@ var floorPlan = function(type, r, c, npoints) {
         getWorldOffset: getWorldOffset,
         getAllWalls: getAllWalls,
         getAllFloor: getAllFloor,
+        buildRandomMaze: createRandomMaze,
         getDimensions: function() {
             return [rows + 1, cols + 1];
         }

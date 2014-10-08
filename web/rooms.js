@@ -13,7 +13,7 @@ function initRoomManager() {
                     room.curTrackIndex = 0;
                 });
             });
-            _.shuffle(room.allTracks);
+            room.alltracks = _.shuffle(room.alltracks);
         }
     }
 
@@ -44,9 +44,15 @@ function initRoomManager() {
             });
         }
     }
+
+    function getRandomRoom() {
+        return _.sample(rooms);
+    }
+
     var interface = {
         fetchRooms:fetchRooms, 
-        fetchRoom:fetchRoom 
+        fetchRoom:fetchRoom,
+        getRandomRoom:getRandomRoom 
     };
     return interface;
 }

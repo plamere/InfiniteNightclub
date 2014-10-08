@@ -4,6 +4,11 @@ function randomBetween(a,b) {
     return Math.floor(Math.random() * range) + a;
 }
 
+function frandomBetween(a,b) {
+    var range = b - a;
+    return Math.random() * range + a;
+}
+
 function addStars(scene) {
     var i, r = 200, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
 
@@ -63,13 +68,49 @@ function addStars(scene) {
 function addLights(scene) {
 
 /*
-*/
     var ambientLight = new THREE.AmbientLight( 0x888888 );
     scene.add( ambientLight );
+*/
 
+    /*
     var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
     plight.position.set( 0, 200, 0 ).normalize();
     scene.add( plight );
+    */
+
+    var ambientLight = new THREE.AmbientLight( 0xaaaaaa);
+    scene.add( ambientLight );
+
+    {
+        var spotLight   = new THREE.SpotLight( 0xFFFFFF );
+        spotLight.target.position.set( 20, 0, 20 );
+        spotLight.shadowCameraNear  = 0.01;     
+        spotLight.castShadow        = true;
+        spotLight.shadowDarkness    = 0.4;
+        spotLight.position.x = 20;
+        spotLight.position.y = 30;
+        spotLight.position.z = 20;
+        scene.add( spotLight );
+    }
+
+    if (false)
+    {
+        var spotLight   = new THREE.SpotLight( 0x0022FF );
+        spotLight.target.position.set( 20, 0, 20 );
+        spotLight.shadowCameraNear  = 0.01;     
+        spotLight.castShadow        = true;
+        spotLight.shadowDarkness    = 0.5;
+        spotLight.position.x = 20;
+        spotLight.position.y = 30;
+        spotLight.position.z = 00;
+        scene.add( spotLight );
+    }
+
+    /*
+    var slight = new THREE.SpotLight( 0xcccccc, 1, 0 );
+    plight.position.set( 0, 200, 0 ).normalize();
+    scene.add( plight );
+    */
 
 /*
     var plight = new THREE.PointLight( 0xcccccc, 1, 0 );
@@ -138,6 +179,34 @@ function normalizeAngle(angle) {
     return angle;
 }
 
+function bounce(obj, scale) {
+    if (scale == undefined) {
+        scale = 1.3;
+    }
+    //var target = { x: obj.scale.x * scale, y: obj.scale.y * scale, z: obj.scale.z *scale};
+    var target = { x: obj.scale.x * 1, y: obj.scale.y * scale, z: obj.scale.z *1};
+    var dest = { x:obj.scale.x, y: obj.scale.y, z:obj.scale.z};
+    var upTween = new TWEEN.Tween(obj.scale).to(target, 300)
+             .easing( TWEEN.Easing.Quadratic.Out).delay(0);
+
+    var downTween = new TWEEN.Tween(obj.scale).to(dest, 600)
+             .easing( TWEEN.Easing.Bounce.Out).delay(0);
+    upTween.chain(downTween);
+    upTween.start();
+}
+
+function bounce2(obj) {
+    var target = { y: obj.position.y + 1};
+    var dest = { y: obj.position.y};
+    var upTween = new TWEEN.Tween(obj.position).to(target, 300)
+             .easing( TWEEN.Easing.Quadratic.Out).delay(0);
+
+    var downTween = new TWEEN.Tween(obj.position).to(dest, 1000)
+             .easing( TWEEN.Easing.Bounce.Out).delay(0);
+    upTween.chain(downTween);
+    upTween.start();
+}
+
 
 function goCircle(group, width) {
     var circumference = width * group.children.length;
@@ -162,8 +231,6 @@ function goCircle(group, width) {
 
         theta += delta;
         theta = normalizeAngle(theta);
-        console.log('gc', x,y,z,theta * Math.PI * 2);
-
     }
 }
 

@@ -14,6 +14,7 @@ THREE.MazeControls	= function(camera, scene, domElement) {
     this.DOWN_KEY = 'S'.charCodeAt(0);
     this.LEFT_KEY = 'A'.charCodeAt(0);
     this.RIGHT_KEY = 'D'.charCodeAt(0);
+    this.LOOKUP = 'U'.charCodeAt(0);
     this.TOP_VIEW_KEY = 'T'.charCodeAt(0);
     this.NORMAL_VIEW_KEY = 'N'.charCodeAt(0);
     this.compass = 0;
@@ -26,11 +27,18 @@ THREE.MazeControls	= function(camera, scene, domElement) {
     this.xpos = 0;
     this.zpos = 0;
     this.ypos = 0;
+    this.viewHalfX = window.innerWidth / 2;
+    this.viewHalfY = window.innerHeight /2;
 
 	var _this	= this;
 	this._$onKeyDown	= function(){ _this._keyDown.apply(_this, arguments); };
     $(this._domElement).keydown( this._$onKeyDown);
     $(this._domElement).keyup( this._$onKeyUp);
+    $(this._domElement).mousemove(function(evt) {
+        _this.mouseX = evt.pageX - _this.viewHalfX;
+        _this.mouseY = evt.pageY - _this.viewHalfY;
+        evt.preventDefault();
+    });
 }
 
 function loadAudio(url) {
@@ -40,36 +48,47 @@ function loadAudio(url) {
 }
 
 THREE.MazeControls.prototype._keyDown = function (event) {
-    console.log('MazeControls', event);
     if (event.keyCode in this.handlers) {
         this.handlers[event.keyCode]();
     }
 
     if (event.keyCode == this.RIGHT_ARROW) {
         this.rotate(-1);
+        event.preventDefault();
     }
     if (event.keyCode == this.LEFT_ARROW) {
         this.rotate(1);
+        event.preventDefault();
     }
 
     if (event.keyCode == this.UP_ARROW || event.keyCode == this.UP_KEY) {
         this.move(-1.0);
+        event.preventDefault();
     }
 
     if (event.keyCode == this.DOWN_ARROW ||event.keyCode == this.DOWN_KEY) {
         this.move(1.0);
+        event.preventDefault();
     }
 
     if (event.keyCode == this.LEFT_KEY) { 
         this.offAxisMove(-1.0);
+        event.preventDefault();
+    }
+
+    if (event.keyCode == this.LOOKUP) { 
+        this.lookup();
+        event.preventDefault();
     }
 
     if (event.keyCode == this.RIGHT_KEY) { 
         this.offAxisMove(1.0);
+        event.preventDefault();
     }
 
     if (event.keyCode == this.SPACE) {
         this.jump();
+        event.preventDefault();
     }
 }
 
@@ -110,6 +129,19 @@ THREE.MazeControls.prototype.rotate = function(direction, delay) {
         .start();
 }
 
+THREE.MazeControls.prototype.lookup = function() {
+    //var camera = this.camera;
+    //camera.lookAt(new THREE.Vector2(20,20,20));
+}
+
+THREE.MazeControls.prototype.frotate = function(direction) {
+    this.compass = direction;
+    var angle = (Math.PI / 2) * this.compass;
+    this.camera.rotation.x = 0;
+    this.camera.rotation.y = angle;
+    this.camera.rotation.z = 0;
+}
+
 THREE.MazeControls.prototype.jump = function() {
     if (!this.jumping) {
         var that = this;
@@ -148,9 +180,7 @@ THREE.MazeControls.prototype.llmove = function (distance, compassOffset) {
 }
 
 THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos, immediate) {
-    console.log('llgoPos', xpos, ypos, zpos);
     if (this.floorplan == null) {
-        console.log('no floorplan, skipping');
         return;
     }
 
@@ -158,8 +188,6 @@ THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos, immediate) {
     var fpPos = this.floorplan.worldPosToMaze(target);
     var moveOK = this.floorplan.isVisitable(fpPos[0], fpPos[1]);
     if (moveOK) {
-    console.log("moveok", this.compass, this.camera.position.x, this.camera.position.z);
-        //console.log('rc move', this.xpos, this.zpos);
         if (immediate) {
             this.camera.position.x = target.x;
             this.camera.position.y = target.y;
@@ -176,7 +204,7 @@ THREE.MazeControls.prototype.llgoPos = function (xpos, ypos, zpos, immediate) {
         if (contents && (typeof contents == 'object' && 'play' in contents)) {
             contents.play();
         } else {
-            //this.thunk.play();
+            this.thunk.play();
         }
         //this.thunk.play();
     }
@@ -190,10 +218,13 @@ THREE.MazeControls.prototype.move = function (distance) {
     this.llmove(distance, 0);
 }
 
-THREE.MazeControls.prototype.setFloorplan = function (floorplan) {
+THREE.MazeControls.prototype.setFloorplan = function (floorplan, which) {
+    var angles = [2,3, 0, 1];
     this.floorplan = floorplan;
-    var start = floorplan.getStartingPoint(0);
+    var start = floorplan.getStartingPoint(which);
     var startingPos = floorplan.mazePosToWorld(start);
+
+    this.frotate(angles[which]);
     this.llgoPos(startingPos.x -.5, startingPos.y -.5, startingPos.z -.5, true);
 }
 

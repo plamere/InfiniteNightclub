@@ -83,6 +83,12 @@ function onWindowResize() {
     renderer.setSize( window.innerWidth, window.innerHeight - topBorder);
 }
 
+
+function gotoRandomRoom() {
+    var room = roomManager.getRandomRoom();
+    goToRoom(room);
+}
+
 function clickHandler( e ) {
     var projector = new THREE.Projector();
     var mouseVector = new THREE.Vector3();
@@ -119,14 +125,15 @@ function addCameraControl(camera, scene, maze) {
 }
 
 
-function deleteCurrentRoom() {
-    console.log('deleteCurRoom', curRoom.viz);
-    if (curRoom && curRoom.viz != null) {
-        console.log('inner deleteCurRoom', curRoom.viz);
+function deleteRoom(room) {
+    console.log('deleteRoom', room.viz);
+    if (room && room.viz != null) {
+        console.log('inner deleteCurRoom', room.viz);
         clearUpdates();
-        var cgroup = curRoom.viz;
+        TWEEN.removeAll();
+        var cgroup = room.viz;
         scene.remove(cgroup);
-        curRoom.viz = null;
+        room.viz = null;
     }
 }
 
@@ -154,12 +161,14 @@ function showRoomControls(room) {
 }
 
 
-function showCurrentRoom() {
+function showCurrentRoom(lastRoomName) {
     console.log('scr', curRoom.viz);
     var viz = createVisualization(curRoom, 0, 0,0, 0);
     scene.add(viz);
-    controls.setFloorplan(curRoom.floorPlan);
-    showRoomControls(curRoom);
+
+    var which = getConnection(curRoom, lastRoomName)
+    controls.setFloorplan(curRoom.floorPlan, which);
+    // showRoomControls(curRoom);
 
     if (monkey) {
         console.log('monkey');
@@ -186,17 +195,18 @@ function getConnection(room, oname) {
             return i;
         }
     }
-    return null;
+    return 0;
 }
 
 function goToRoom(room) {
     roomManager.fetchRoom(room, function(room) {
         var oldRoom = curRoom;
         if (oldRoom) {
-            deleteCurrentRoom();
+            deleteRoom(oldRoom);
         }
         curRoom = room;
-        showCurrentRoom();
+        showCurrentRoom(oldRoom.name);
+        playNextRoomTrack();
     });
 }
 
@@ -216,7 +226,10 @@ function playTrack(track) {
         curTrack = null;
     }
     curTrack = track;
-    curTrack.cube.material.color.setRGB( 1, 0, 0);
+    if (curTrack.cube) {
+        curTrack.cube.material.color.setRGB( 1, 0, 0);
+        bounce(curTrack.cube);
+    }
 
     console.log('playing', track);
     audio.attr('src', track.audio);
@@ -226,13 +239,29 @@ function playTrack(track) {
 function init3D() {
     clock = new THREE.Clock();
     window.addEventListener( 'resize', onWindowResize, false );
+
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth /
+        window.innerHeight, .05, 10000 );
+    /*
     camera = new THREE.PerspectiveCamera(70, 
         window.innerWidth / (window.innerHeight - topBorder), .1, 10000 );
+    */
     scene = new THREE.Scene();
+
+    //scene.fog = new THREE.Fog( 0x000000, 1500, 4000 );
+    scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0025 );
+
+
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight - topBorder);
+    renderer.shadowMapEnabled = true;
+    renderer.shadowMapType = THREE.PCFSoftShadowMap;
+
     $("#the-scene").append($(renderer.domElement));
+
+    renderer.setClearColor( scene.fog.color, 1 );
+    renderer.autoClear = false;
 
     camera.position.y = 5;
     camera.position.z = 5;
@@ -287,7 +316,7 @@ $(document).ready(
             roomManager.fetchRoom('pop', function(room) {
                 curRoom = room;
                 init3D();
-                showCurrentRoom();
+                showCurrentRoom('nowhere');
             });
         });
     }
