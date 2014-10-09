@@ -126,15 +126,6 @@ function addCameraControl(camera, scene, maze) {
 }
 
 
-function deleteRoom(room) {
-    if (room && room.viz != null) {
-        clearUpdates();
-        TWEEN.removeAll();
-        var cgroup = room.viz;
-        scene.remove(cgroup);
-        room.viz = null;
-    }
-}
 
 function showRoomControls(room) {
     $("#controls").empty();
@@ -273,7 +264,6 @@ function init3D() {
     render();
     addStars(scene);
     addLights(scene);
-    addAxes(scene);
 }
 
 function initUI() {

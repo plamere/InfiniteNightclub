@@ -19,7 +19,7 @@ var floorPlan = function(r, c) {
     var maze = {}
     var rows;
     var cols;
-    var rampLength = 8;
+    var rampLength = 5;
     var rampWidth = 3;
     var connectors = [];  // E, N, W, S
     var startingPoints = [];  // E, N, W, S
