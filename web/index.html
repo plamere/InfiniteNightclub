@@ -43,19 +43,13 @@ var roomManager = null;
 var allRooms = null;
 var curRoom = null;
 var curTrack = null;
-var cameraControls = null;
 
 var topBorder = 20;
 var clock = null;
 var audio = null;
-var monkey = false;
 var audio = $("<audio>");
-var removeMe = [];
-
-var trackBallCamera = false;
 
 var updates = [];
-
 
 function addUpdates(obj) {
     if ('update' in obj) {
@@ -85,93 +79,14 @@ function onWindowResize() {
     renderer.setSize( window.innerWidth, window.innerHeight - topBorder);
 }
 
-
 function gotoRandomRoom() {
     var room = roomManager.getRandomRoom();
     goToRoom(room);
 }
 
-function addClickables(arry, objarry) {
-    _.each(objarry, function(obj) {
-        if (obj) {
-            if (obj.clicked) {
-                arry.push(obj);
-            } else if (obj.children) {
-                addClickables(arry, obj.children);
-            }
-        }
-    });
-}
 
-function clickHandler( e ) {
-    var projector = new THREE.Projector();
-    var mouseVector = new THREE.Vector3();
-    console.log('dom', renderer.domElement);
-
-    console.log('mouse', e.offsetX, e.offsetY);
-    console.log('mouse', e);
-    // FIXME -
-    if (false) {
-        mouseVector.x = 2 * (e.offsetX / renderer.domElement.clientWidth) - 1;
-        mouseVector.y = 1 - 2 * ( e.offsetY / renderer.domElement.clientHeight );
-    } else {
-        mouseVector.x = 2 * (e.pageX / window.innerWidth) - 1;
-        mouseVector.y = 1 - 2 * ( e.pageY / window.innerHeight);
-    }
-
-    if (curRoom.clickable == undefined) {
-        curRoom.clickable = [];
-        addClickables(curRoom.clickable, curRoom.viz);
-    }
-
-    var raycaster = projector.pickingRay( mouseVector, camera );
-    var intersects = raycaster.intersectObjects( curRoom.clickable);
-        
-    console.log('raycast', mouseVector, intersects);
-    if (intersects.length > 0) {
-        var obj = intersects[0].object;
-        while (obj) {
-            if ('clicked' in obj) {
-                obj.clicked();
-                break;
-            } else {
-                obj = obj.parent;
-            }
-        }
-    }
-}
-
-function addCameraControl(camera, scene, maze) {
-    if (trackBallCamera) {
-        controls = new THREE.TrackballControls( camera, renderer.domElement);
-    } else {
-        controls = new THREE.MazeControls( camera, scene);
-    }
-}
-
-
-
-function showRoomControls(room) {
-    $("#controls").empty();
-    var roomName = $("<span>");
-    roomName.text(curRoom.name);
-    roomName.addClass('room-name');
-    $("#controls").append(roomName);
-    $("#controls").append("&nbsp;---&nbsp;");
-    _.each(curRoom.sims, function(sname) {
-        var a = $("<a>").text(sname);
-        a.on('click', function() {
-            goToRoom(sname);
-        });
-        $("#controls").append(a);
-        $("#controls").append("&nbsp;");
-    });
-
-    var goMonkey = $("<a>").text('monkey');
-    goMonkey.on('click', function() {
-        monkey = !monkey;
-    });
-    $("#controls").append(goMonkey);
+function addCameraControl(camera) {
+    controls = new THREE.MazeControls(camera, $(renderer.domElement));
 }
 
 
@@ -180,7 +95,9 @@ function showCurrentRoom(lastRoomName) {
     var viz = createVisualization(curRoom, 0, 0,0, 0);
     scene.add(viz);
     var which = getConnection(curRoom, lastRoomName)
-    controls.setFloorplan(curRoom.floorPlan, which);
+    var start = curRoom.floorPlan.getStartingPoint(which);
+    var startingPos = curRoom.floorPlan.mazePosToWorld(start);
+    controls.setScene(viz, startingPos, which);
 }
 
 function getConnection(room, oname) {
@@ -270,24 +187,17 @@ function init3D() {
     stats.domElement.style.top = '0px';
     $("<body>").append( $(stats.domElement) );
 
-    addCameraControl(camera, scene, null);
+    addCameraControl(camera);
 
     var render = function () {
         var delta = clock.getDelta();
         controls.update(delta);
-        if (cameraControls) {
-            cameraControls.update(delta);
-        }
         TWEEN.update();
         processUpdates();
         requestAnimationFrame(render);
         renderer.render(scene, camera);
         if (curRoom && curRoom.viz) {
             //curRoom.viz.rotation.y += .001;
-        }
-
-        while (removeMe.length > 0) {
-            scene.remove(removeMe.pop());
         }
     };
 
@@ -302,7 +212,6 @@ function initUI() {
     audio.get(0).addEventListener('ended', function() {
         playNextRoomTrack();
     });
-    $("#the-scene").click(clickHandler);
 }
 
 function setURL(genre) {
@@ -360,7 +269,7 @@ $(document).ready(
 <script src="lib/TrackballControls.js"></script>
 <script src="lib/threex.dynamictexture.js"></script>
 <script src="lib/stats.min.js"></script>
-<script src="MazeControls.js"></script>
+<script src="RCMazeControls.js"></script>
 <script src="misc.js"></script>
 <script src="floorplan.js"></script>
 <script src="rooms.js"></script>

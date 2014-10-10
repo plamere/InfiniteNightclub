@@ -3,9 +3,12 @@ low level
 ========
 
 - Camera
-   - raycaster collision detector
-   - free look mode
-   - fly mode
+   - raycaster collision detector / DONE
+   - add free look mode
+   - fix fly mode
+   - refactor grid .5 offsets and z height
+   - move clicking into camera
+   - fix mouse clicking
 
 - animations 
     - improve animation model
@@ -21,7 +24,12 @@ high level
     - static elements in rooms so they are recognizable/repeatable
     - figure out animation triggers
     - room change animation
+    - get rid of bootstrap
 
+Features
+========
+    - music book marks (save songs to a spotify playlist)
+    - twitter
 
 Bugs
 ----
