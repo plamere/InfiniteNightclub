@@ -18,10 +18,16 @@ function addFloor(grp, x, y, z, width, depth, color) {
 
 
 function addTextTile(grp, text, x, y, z, callback) {
-    var dynamicTexture  = new THREEx.DynamicTexture(1024,128);
+    var widthHeightRatio = 2
+    var height = 128;
+    var width = Math.round(height * text.length / widthHeightRatio);
+    var dynamicTexture  = new THREEx.DynamicTexture(width,height);
+    var geoRatio = Math.round(width / height);
+
+    //text = '1234567890123456789012345678901234567890';
     dynamicTexture.context.font = "bolder 72px Verdana";
     dynamicTexture.clear('#232323').drawText(text, undefined, 84, 'green')
-    var geometry    = new THREE.BoxGeometry( 8, 1, 1);
+    var geometry    = new THREE.BoxGeometry( geoRatio, 1, 1);
     var material    = new THREE.MeshLambertMaterial({ map:dynamicTexture.texture});
     var mesh    = new THREE.Mesh( geometry, material );
     goTo(mesh, x, y, z, 0, 0);
@@ -76,13 +82,29 @@ function addWall(grp, x, y, z, color) {
     });
 }
 
-function addWalls(room, group, walls, alltracks) {
+function swapper(room) {
+    var alltracks = _.clone(room.alltracks);
+    alltracks = _.shuffle(alltracks);
+    _.each(alltracks, function(track, i) {
+        var tween = moveTo(track.cube, 15, i, 15, 2, i * .01 );
+        tween.onComplete(function() {
+            var home = track.cube.home;
+            moveTo(track.cube, home[0], home[1], home[2], 2, 2 + i * .01 );
+        });
+    });
+}
+
+
+function addWalls(room, group, walls, alltracks, callback) {
     var texture = THREE.ImageUtils.loadTexture('assets/blue_wall.jpg', undefined,
     function() {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set( 1,3);
         var material = new THREE.MeshLambertMaterial({ map: texture });
+        var wallGroup = new THREE.Object3D();
+        group.add(wallGroup);
+        room.wallGroup = wallGroup;
 
         _.each(walls, function(wall, i) {
             var world = room.floorPlan.mazePosToWorld(wall);
@@ -93,13 +115,18 @@ function addWalls(room, group, walls, alltracks) {
             if (wall[0] % 2 == wall[1] % 2) {
                 if (alltracks.length > 0) {
                     var track = alltracks.pop(0);
-                    addTrackTile(group, track, world.x, world.y + .5, world.z, i,
+                    addTrackTile(wallGroup, track, world.x, world.y + .3, world.z, i,
                     function(obj) {
+                        obj.home = [world.x, world.y + .3, world.z];
                         room.floorPlan.pset(wall, obj);
+                        // console.log('track', obj);
                     });
                 }
             }
         });
+        if (callback) {
+            callback();
+        }
     });
 }
 
@@ -153,7 +180,7 @@ function addTardis(grp, x, z) {
     var material = new THREE.MeshLambertMaterial({ map: texture });
     var geometry = new THREE.BoxGeometry( 1, 2, 1);
     var object = new THREE.Mesh( geometry, material );
-    goTo(object, x, .2, z);
+    goTo(object, x, .05, z);
     grp.add( object );
     object.clicked = function() {
         gotoRandomRoom()
@@ -177,6 +204,7 @@ function addTrackCube(grp, track, x, y, z, which, callback) {
             var material = new THREE.MeshLambertMaterial({ map: texture });
 
             var object = new THREE.Mesh( geometry, material);
+            object.home = [x,y,z];
             object.track = track;
             track.cube = object;
             object.castShadow = true;
@@ -258,34 +286,38 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
     var walls = room.floorPlan.getAllWalls();
     var alltracks = _.clone(room.alltracks);
     
-    console.log('alltracks 1', alltracks.length);
-    var wallTracks = alltracks.slice(0, walls.length);
-    var floorTracks = alltracks.slice(walls.length);
-    addWalls(room, group, walls, wallTracks);
-    console.log('alltracks 2', walls.length, wallTracks.length, floorTracks.length);
+    //console.log('walltracks', alltracks.length, walls.length, wallTracks);
+
     var dims = room.floorPlan.getDimensions();
     var worldDims = room.floorPlan.mazePosToWorld([dims[0]/2, dims[1]/2]);
-    addFloor(group, worldDims.x, -1, worldDims.z, dims[0], dims[1], 'grey');
 
-    room.floorPlan.buildRandomMaze(floorTracks.length + 1);
-    var reserved = room.floorPlan.getAllReserved();
+    addWalls(room, group, walls, alltracks, function() {
+        addFloor(group, worldDims.x, -1, worldDims.z, dims[0], dims[1], 'grey');
 
-    _.each(floorTracks, function(track, i) {
+        room.floorPlan.buildRandomMaze(alltracks.length + 1);
+        var reserved = room.floorPlan.getAllReserved();
+        var floorGroup = new THREE.Object3D();
+        group.add(floorGroup);
+        room.floorGroup = floorGroup;
+
+        _.each(alltracks, function(track, i) {
+            if (reserved.length > 0) {
+                var spot = reserved.pop(0);
+                var world = room.floorPlan.mazePosToWorld(spot);
+                addTrackCube(floorGroup, track, world.x, 0, world.z, i,
+                function(obj) {
+                    room.floorPlan.pset(spot, obj);
+                });
+            }
+        });
+
         if (reserved.length > 0) {
             var spot = reserved.pop(0);
-            var world = room.floorPlan.mazePosToWorld(spot);
-            addTrackCube(group, track, world.x, 0, world.z, i,
-            function(obj) {
-                room.floorPlan.pset(spot, obj);
-            });
+            var obj = addTardis(group, spot[0], spot[1]);
+            room.floorPlan.pset(spot, obj);
         }
     });
 
-    if (reserved.length > 0) {
-        var spot = reserved.pop(0);
-        var obj = addTardis(group, spot[0], spot[1]);
-        room.floorPlan.pset(spot, obj);
-    }
 
     var artistGroup = new THREE.Object3D();
     var center = [Math.floor(dims[0]/2), Math.floor(dims[1]/2)];
@@ -295,7 +327,7 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
            count++;
            if (count == room.artists.length) {
                 goCircle(artistGroup, 5);
-                addTextTile(artistGroup, room.name, 0,0,0);
+                addTextTile(artistGroup, room.name, 0,-3.5,0);
                 goTo(artistGroup, center[0], 5, center[1], 2, 0);
            }
         });
@@ -305,9 +337,9 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
         this.rotation.y += .001;
     };
     addUpdates(artistGroup);
-
-
     group.add(artistGroup);
+    room.artistGroup = artistGroup;
+    room.artistGroupHome = [center[0], 5, center[1]];
 
     // room.floorPlan.logMaze();
 
@@ -360,7 +392,6 @@ function createSimpleRoomViz(room, x, y, z, rotate) {
     });
     /*
     */
-
     return group;
 }
 
@@ -376,6 +407,8 @@ function deleteRoom(room) {
         var cgroup = room.viz;
         scene.remove(cgroup);
         room.viz = null;
+        room.floorGroup = null;
+        room.wallGroup = null;
         _.each(room.alltracks, function(track) {
             delete track.cube
         });

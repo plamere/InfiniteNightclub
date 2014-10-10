@@ -185,8 +185,8 @@ function bounce(obj, scale) {
         scale = 1.3;
     }
     //var target = { x: obj.scale.x * scale, y: obj.scale.y * scale, z: obj.scale.z *scale};
-    var target = { x: obj.scale.x * .8, y: obj.scale.y * scale, z: obj.scale.z *.8};
-    var dest = { x:obj.scale.x, y: obj.scale.y, z:obj.scale.z};
+    var target = { x:  .8, y: 1.3, z:.8};
+    var dest = { x:1, y: 1, z:1};
     var upTween = new TWEEN.Tween(obj.scale).to(target, 300)
              .easing( TWEEN.Easing.Quadratic.Out).delay(0);
 
@@ -260,6 +260,7 @@ function moveTo(o, x, y, z, time, delay) {
         .easing(TWEEN.Easing.Sinusoidal.InOut)
         .delay(delay * 1000)
         .start();
+    return tween;
 }
 
 function goTo(o, x, y, z) {

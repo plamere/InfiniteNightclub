@@ -10,16 +10,24 @@ THREE.MazeControls	= function(camera, scene, domElement) {
     this.UP_ARROW =38;
     this.DOWN_ARROW=40;
     this.SPACE=32;
+    this.PAUSE_KEY = 'P'.charCodeAt(0);
     this.UP_KEY = 'W'.charCodeAt(0);
     this.DOWN_KEY = 'S'.charCodeAt(0);
     this.LEFT_KEY = 'A'.charCodeAt(0);
     this.RIGHT_KEY = 'D'.charCodeAt(0);
     this.LOOKUP = 'U'.charCodeAt(0);
+    this.MONKEY = 'M'.charCodeAt(0);
+    this.FLY = 'F'.charCodeAt(0);
+    this.ANIMATE = 'H'.charCodeAt(0);
     this.TOP_VIEW_KEY = 'T'.charCodeAt(0);
     this.NORMAL_VIEW_KEY = 'N'.charCodeAt(0);
     this.compass = 0;
+    this.isUp = false;
+    this.rotateTime = 500;
+    this.normalRotateTime = 500;
+    this.slowRotateTime = 2000;
 
-    this.cameraHeight = .65;
+    this.cameraHeight = .75;
     this.jumping = false;
 
     this.handlers = {}
@@ -39,6 +47,19 @@ THREE.MazeControls	= function(camera, scene, domElement) {
         _this.mouseY = evt.pageY - _this.viewHalfY;
         evt.preventDefault();
     });
+
+    this.monkey_keys = [
+        this.UP_KEY, this.UP_KEY, this.UP_KEY, this.UP_KEY, 
+        this.UP_KEY, this.UP_KEY, this.UP_KEY, this.UP_KEY, 
+        this.UP_ARROW, this.UP_ARROW, this.UP_ARROW, this.UP_ARROW, 
+        this.DOWN_KEY, 
+        this.LEFT_ARROW, this.RIGHT_ARROW, 
+        this.LEFT_ARROW, this.RIGHT_ARROW, 
+        this.LEFT_KEY, this.RIGHT_KEY, 
+        this.LEFT_KEY, this.RIGHT_KEY, 
+        this.ANIMATE, this.FLY
+    ];
+
 }
 
 function loadAudio(url) {
@@ -47,17 +68,44 @@ function loadAudio(url) {
     return audio;
 }
 
+
 THREE.MazeControls.prototype._keyDown = function (event) {
     if (event.keyCode in this.handlers) {
         this.handlers[event.keyCode]();
     }
 
     if (event.keyCode == this.RIGHT_ARROW) {
-        this.rotate(-1);
+        var time = 500;
+        if (event.shiftKey) {
+            time = 4000;
+        }
+        this.rotate(-1, time);
         event.preventDefault();
     }
+
     if (event.keyCode == this.LEFT_ARROW) {
-        this.rotate(1);
+        var time = 500;
+        if (event.shiftKey) {
+            time = 4000;
+        }
+        this.rotate(1, time);
+        event.preventDefault();
+    }
+
+    if (event.keyCode == this.MONKEY) {
+        if (this.monkey) {
+            clearInterval(this.monkey);
+            this.monkey = null;
+        } else {
+            var that = this;
+            this.monkey = setInterval(
+                function() {
+                    console.log(that, that.monkey_keys);
+                    key = _.sample(that.monkey_keys);
+                    event.keyCode = key;
+                    that._keyDown(event);
+                }, 500);
+        }
         event.preventDefault();
     }
 
@@ -90,6 +138,22 @@ THREE.MazeControls.prototype._keyDown = function (event) {
         this.jump();
         event.preventDefault();
     }
+
+    if (event.keyCode == this.FLY) {
+        this.fly();
+        //event.preventDefault();
+    }
+
+    if (event.keyCode == this.PAUSE_KEY) {
+        stopTrack();
+        event.preventDefault();
+    }
+
+    if (event.keyCode == this.ANIMATE) {
+        // horrible ...
+        nextAnimation(curRoom);
+        event.preventDefault();
+    }
 }
 
 /*
@@ -110,7 +174,7 @@ function rotateTo(o, x, y, z, time, delay) {
 }
 */
 
-THREE.MazeControls.prototype.rotate = function(direction, delay) {
+THREE.MazeControls.prototype.rotate = function(direction, time, delay) {
     delay = delay === undefined ? 0 : delay;
     this.compass += direction;
     var angle = (Math.PI / 2) * this.compass;
@@ -118,7 +182,7 @@ THREE.MazeControls.prototype.rotate = function(direction, delay) {
     var camera = this.camera;
 
     var tween = new TWEEN.Tween(camera.rotation)
-        .to(target, 500)
+        .to(target, time)
         .onUpdate( function() {
             camera.rotation.x = this.x;
             camera.rotation.y = this.y;
@@ -143,20 +207,27 @@ THREE.MazeControls.prototype.frotate = function(direction) {
 }
 
 THREE.MazeControls.prototype.jump = function() {
-    if (!this.jumping) {
+    if (true || !this.jumping) { // FIXME
         var that = this;
         this.jumping = true;
-        var starget = {  y: 20, };
+        var starget = {  y: 5, };
         var ttarget = {  y: this.cameraHeight, };
         //var rtarget = { x: -Math.PI / 2};
-        var upTween = new TWEEN.Tween(this.camera.position).to(starget, 1000)
+        var upTween = new TWEEN.Tween(this.camera.position).to(starget, 2000)
              .easing( TWEEN.Easing.Quadratic.Out).delay(0);
-        var downTween = new TWEEN.Tween(this.camera.position).to(ttarget, 2000)
+        var downTween = new TWEEN.Tween(this.camera.position).to(ttarget, 3000)
              .easing( TWEEN.Easing.Bounce.Out).delay(0).
                 onComplete(function(){ that.jumping = false;});
         upTween.chain(downTween);
         upTween.start();
     }
+}
+
+THREE.MazeControls.prototype.fly = function() {
+    var ttarget = {  y: this.camera.position.y + 3, };
+    var tween = new TWEEN.Tween(this.camera.position).to(ttarget, 2000)
+         .easing( TWEEN.Easing.Quadratic.Out).delay(0);
+    tween.start();
 }
 
 

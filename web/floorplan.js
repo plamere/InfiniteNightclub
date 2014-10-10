@@ -149,11 +149,11 @@ var floorPlan = function(r, c) {
     function createRandomMaze(npoints) {
         for (var i = 0; i < npoints; i++) {
             var found = false;
-            var xrange = (rows - rampLength * 2) - 2;
-            var yrange = (cols - rampLength * 2) - 2;
+            var xrange = (rows - rampLength * 2) - 5;
+            var yrange = (cols - rampLength * 2) - 6;
             while (!found) {
-                var x = Math.floor(Math.random() * xrange) + rampLength + 1;
-                var y = Math.floor(Math.random() * yrange) + rampLength + 1;
+                var x = Math.floor(Math.random() * xrange) + rampLength + 3;
+                var y = Math.floor(Math.random() * yrange) + rampLength + 3;
                 if (get(x,y) === VISITABLE) {
                     set(x, y, RESERVED);
                     found = true;

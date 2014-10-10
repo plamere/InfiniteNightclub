@@ -41,7 +41,7 @@ function initRoomManager() {
                 roomCache[room] = data;
                 populateTrackList(data);
                 callback(roomCache[room]);
-            });
+            }).error(function() { callback(null); });
         }
     }
 
