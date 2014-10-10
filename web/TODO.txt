@@ -1,0 +1,31 @@
+
+low level
+========
+
+- Camera
+   - raycaster collision detector
+   - free look mode
+   - fly mode
+
+- animations 
+    - improve animation model
+
+- coordinates
+    - center coordinate system
+
+- general refactor
+
+high level
+==========
+    - different room styles
+    - static elements in rooms so they are recognizable/repeatable
+    - figure out animation triggers
+    - room change animation
+
+
+Bugs
+----
+ - Chrome crash
+ - shadow errors
+ - firefox stutter
+- 
